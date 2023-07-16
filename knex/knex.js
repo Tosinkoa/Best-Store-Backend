@@ -6,5 +6,4 @@ dotenv.config();
 
 const knexConfig = process.env.NODE_ENV || "development";
 const connection = knex(configuration[knexConfig]);
-console.log("KNEX CONFIG:", connection);
 export default connection;
