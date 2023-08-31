@@ -1,20 +1,30 @@
+import connectPgSimple from "connect-pg-simple";
 import cookieParser from "cookie-parser";
 import cors from "cors";
+import dotenv from "dotenv";
 import express from "express";
 import session from "express-session";
-import dotenv from "dotenv";
-import connection from "./knex/knex.js";
+import "./src/LIB/DB-Client.js";
+import AdminRootRoute from "./src/Routes/AdminRootRoute.js";
+import UserRootRoute from "./src/Routes/UserRootRoute.js";
+
 dotenv.config();
-// import { db } from "./dbConnection.js";
-// db();
 const app = express();
 
-// const PgStore = connectPgSimple(session);
-// const store = new PgStore({ conString: connection, schemaName: "hidden", createTableIfMissing: true });
+const PgStore = connectPgSimple(session);
+const store = new PgStore({
+  conString: process.env.DATABASE_URL,
+  schemaName: "hidden",
+  createTableIfMissing: true,
+});
+
+app.use(express.json());
+app.use(cookieParser());
+app.set("trust proxy", 1);
 
 app.use(
   session({
-    // store: store,
+    store: store,
     secret: process.env.SESSION_SECRET,
     saveUninitialized: false,
     resave: true,
@@ -37,14 +47,7 @@ app.use(
   })
 );
 
-app.get("/", async (req, res) => {
-  const knexAdd = await connection("users").insert({ email: "hi@example.com" });
-  console.log(knexAdd);
-  return res.json(knexAdd);
-});
+UserRootRoute(app);
+AdminRootRoute(app);
 
-app.use(express.json());
-app.use(cookieParser());
-app.set("trust proxy", 1);
-// rootRoute(app);
 export default app;
