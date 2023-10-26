@@ -6,8 +6,12 @@ const router = express.Router();
  */
 
 router.post("/save-product/:product_id", async (req, res) => {
-  const { product_id } = req.params;
+  let { product_id } = req.params;
   const loggedInUser = req.session.user;
+  product_id = parseInt(product_id);
+
+  if (!product_id)
+    return res.status(400).json({ error: "product_id is required and must be a number" });
 
   try {
     const productExist = await SavedItemsQueries.selectProductByID(product_id);
@@ -18,7 +22,8 @@ router.post("/save-product/:product_id", async (req, res) => {
     if (productData.saved_item_id) {
       return res.status(400).json({ error: "Product already saved!" });
     }
-    await SavedItemsQueries.saveProduct(loggedInUser, product_id);
+    await SavedItemsQueries.deleteSavedProductFromCart([product_id, loggedInUser]);
+    await SavedItemsQueries.saveProduct([loggedInUser, product_id]);
     return res.status(200).json({ message: "Product saved successfully" });
   } catch (error) {
     console.log(error);
@@ -27,17 +32,19 @@ router.post("/save-product/:product_id", async (req, res) => {
 });
 
 router.delete("/remove-saved-product/:saved_product_id", async (req, res) => {
-  const { saved_product_id } = req.params;
+  let { saved_product_id } = req.params;
   const loggedInUser = req.session.user;
+  saved_product_id = parseInt(saved_product_id);
+  if (!saved_product_id) {
+    return res
+      .status(400)
+      .json({ error: "saved_product_id is required and must be a number" });
+  }
 
   try {
-    const savedProductExist = await SavedItemsQueries.selectSavedProductByID(
-      saved_product_id
-    );
+    const savedProductExist = await SavedItemsQueries.selectSavedProductByID(saved_product_id);
     if (savedProductExist.rowCount < 1)
-      return res
-        .status(400)
-        .json({ error: "Cannot find any record for the id provided!" });
+      return res.status(400).json({ error: "Cannot find any record for the id provided!" });
     const savedProductData = savedProductExist.rows[0];
     // If product exist, add it to saved item for logged in user
     await SavedItemsQueries.removeSavedProduct(savedProductData.product_id, loggedInUser);

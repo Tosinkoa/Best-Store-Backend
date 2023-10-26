@@ -1,13 +1,15 @@
 import express from "express";
 import { BargainQueries } from "./BargainQueries.js";
 import { validateBargain } from "../../../VALIDATOR/UserValidator/BargainValidator.js";
-import { ErrorMessageGetter } from "../../../ReusableFunctions/ErrorMessageGetter.js";
+import { errorMessageGetter } from "../../../ReusableFunctions/errorMessageGetter.js";
 const router = express.Router();
 
 router.post("/bargain/:product_id", async (req, res) => {
   const { amount } = req.body;
-  const { product_id } = req.params;
+  let { product_id } = req.params;
   const loggedInUser = req.session.user;
+
+  product_id = parseInt(product_id);
 
   try {
     const bargainExist = await BargainQueries.selectBargainByUserAndProductId([
@@ -28,7 +30,7 @@ router.post("/bargain/:product_id", async (req, res) => {
     }
     if (bargainData.product_id && !bargainData.bargain_id) {
       const { error } = validateBargain(req.body);
-      if (error) return res.status(400).json({ error: ErrorMessageGetter(error) });
+      if (error) return res.status(400).json({ error: errorMessageGetter(error) });
       await BargainQueries.insertIntoBargain([product_id, loggedInUser, amount]);
       return res.status(200).json({ message: "Offer created successfully!" });
     }
@@ -48,8 +50,13 @@ router.post("/bargain/:product_id", async (req, res) => {
 });
 
 router.post("/accept-bargain/:bargain_id", async (req, res) => {
-  const { bargain_id } = req.params;
+  let { bargain_id } = req.params;
   const loggedInUser = req.session.user;
+  bargain_id = parseInt(bargain_id);
+
+  if (!bargain_id) {
+    return res.status(400).json({ error: "bargain_id is required and must be a number" });
+  }
 
   try {
     const bargainExist = await BargainQueries.selectBargainByID(bargain_id);
@@ -59,16 +66,11 @@ router.post("/accept-bargain/:bargain_id", async (req, res) => {
     const bargainData = bargainExist.rows[0];
     // Check if the person sending the request owns the product
     if (bargainData.seller_user_id !== loggedInUser) {
-      return res
-        .status(403)
-        .json({ error: "Unauthorized!, you cannot accept this bargain" });
+      return res.status(403).json({ error: "Unauthorized!, you cannot accept this bargain" });
     }
     await BargainQueries.setBargainAcceptToTrue(true, bargain_id);
     // Remove all other unaccepted bargains that belongs to same product
-    await BargainQueries.deleteByProductAndBargainID([
-      bargainData.product_id,
-      bargain_id,
-    ]);
+    await BargainQueries.deleteByProductAndBargainID([bargainData.product_id, bargain_id]);
     return res.status(200).json({ message: "Bargain accepted successfully!" });
   } catch (error) {
     console.log(error);

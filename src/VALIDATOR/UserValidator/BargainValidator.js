@@ -1,13 +1,10 @@
 import Joi from "joi";
+import { options } from "../joiOption.js";
 
-const validator = (schema) => (payload) =>
-  schema.validate(payload, { abortEarly: false });
+const validator = (schema) => (payload) => schema.validate(payload, options);
 
 const bargainSchema = Joi.object({
-  amount: Joi.number()
-    .min(1)
-    .required()
-    .label("Amount is required and must be of number, min of 1"),
+  amount: Joi.number().min(1).required(),
 });
 
 export const validateBargain = validator(bargainSchema);

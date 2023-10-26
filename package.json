@@ -2,12 +2,11 @@
     "name": "best-store-backend",
     "version": "1.0.0",
     "main": "index.js",
-    "license": "MIT",
+    "license": "UNLICENSED",
+    "private": true,
     "type": "module",
     "scripts": {
-        "test": "cross-env NODE_OPTIONS=--experimental-vm-modules yarn jest --detectOpenHandles",
-        "dev": "pm2 start server.js --attach --watch",
-        "stop": "pm2 stop server.js"
+        "test": "cross-env NODE_OPTIONS=--experimental-vm-modules yarn jest --detectOpenHandles"
     },
     "dependencies": {
         "bcrypt": "^5.1.0",
@@ -33,10 +32,5 @@
         "speakeasy": "^2.0.0",
         "supertest": "^6.3.3",
         "uuid": "^9.0.0"
-    },
-    "devDependencies": {
-        "eslint": "^8.47.0",
-        "nodemon": "^3.0.1",
-        "pm2": "^5.3.0"
     }
 }
