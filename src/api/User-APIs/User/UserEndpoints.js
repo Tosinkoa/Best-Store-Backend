@@ -5,8 +5,8 @@ import { UserQueries } from "./UserQueries.js";
 import express from "express";
 const router = express.Router();
 
-const PROFILE_PICTURE = multerImage.single("profile_picture");
 router.put("/setup-profile", AuthMiddleware, async (req, res) => {
+  const PROFILE_PICTURE = multerImage.single("profile_picture");
   PROFILE_PICTURE(req, res, async (err) => {
     const { first_name, last_name, phone_number } = req.body;
     const loggedInUser = req.session.user;

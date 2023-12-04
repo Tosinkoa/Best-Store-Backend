@@ -13,6 +13,8 @@ create table if not exists products (
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );
+CREATE INDEX idx_sub_category_id ON products (sub_category_id);
+
 -----------Create Trigger--------
 create trigger set_timestamp before
 update on products for each row execute procedure trigger_set_timestamp();

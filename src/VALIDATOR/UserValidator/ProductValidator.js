@@ -11,7 +11,7 @@ const productSchema = Joi.object({
   bargain: Joi.boolean().optional(),
   category_id: Joi.number().required(),
   sub_category_id: Joi.number().optional(),
-  in_stock: Joi.number().min(1).max(50000).optional(),
+  in_stock: Joi.number().max(50000).optional(),
   product_image: Joi.optional(),
 });
 

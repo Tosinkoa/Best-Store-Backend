@@ -61,7 +61,7 @@ export const ProductQueries = {
   },
   selectAllProductDataBySubCategory(productData) {
     return pool.query(
-      "SELECT p.*, p_img.images FROM products p LEFT JOIN product_images p_img ON p.id = p_img.product_id WHERE sub_category_id = $1 ORDER BY p.id LIMIT $2 OFFSET $3",
+      "SELECT p.*, s.business_name, s.business_logo, p_img.images FROM products p LEFT JOIN product_images p_img ON p.id = p_img.product_id LEFT JOIN sellers s ON p.seller_id = s.id WHERE sub_category_id = $1 ORDER BY p.id LIMIT $2 OFFSET $3",
       [...productData]
     );
   },

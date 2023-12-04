@@ -47,6 +47,10 @@ app.use(
   })
 );
 
+app.get((req, res) => {
+  res.send("API running...");
+});
+
 UserRootRoute(app);
 AdminRootRoute(app);
 

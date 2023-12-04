@@ -1,5 +1,4 @@
 import express from "express";
-import cloudinary from "../../../LIB/cloudinary.js";
 import { multerImage } from "../../../LIB/multer.js";
 import { AuthMiddleware } from "../../../Middlewares/GeneralMiddlewares.js";
 import {
@@ -16,11 +15,11 @@ const router = express.Router();
  * @todo Remove lga table
  * @todo Work on product images
  */
-const MAX_IMAGE_COUNT = 8;
-const PRODUCT_IMAGES = multerImage.array("product_image", MAX_IMAGE_COUNT);
 
 /** @Note Route to create new product */
 router.post("/create-new-product", AuthMiddleware, async (req, res) => {
+  const MAX_IMAGE_COUNT = 8;
+  const PRODUCT_IMAGES = multerImage.array("product_image", MAX_IMAGE_COUNT);
   PRODUCT_IMAGES(req, res, async (err) => {
     let {
       category_id,
@@ -38,7 +37,6 @@ router.post("/create-new-product", AuthMiddleware, async (req, res) => {
     const { error } = validateProduct(req.body);
     if (error) return res.status(400).json({ error: errorMessageGetter(error) });
     // ----- Check for multer error
-    console.log("I am below errorMessageGetter");
     if (err?.code === "LIMIT_FILE_SIZE")
       return res.status(400).json({ error: "The max image size required is 5mb" });
     if (err) return res.status(400).json({ error: err });
@@ -107,6 +105,8 @@ router.post("/create-new-product", AuthMiddleware, async (req, res) => {
  * @Note Route to edit product by product_id
  */
 router.put("/edit-product/:product_id", AuthMiddleware, async (req, res) => {
+  const MAX_IMAGE_COUNT = 8;
+  const PRODUCT_IMAGES = multerImage.array("product_image", MAX_IMAGE_COUNT);
   PRODUCT_IMAGES(req, res, async (err) => {
     let {
       category_id,
@@ -245,11 +245,10 @@ router.get("/get-a-product/:product_id", AuthMiddleware, async (req, res) => {
   }
 });
 
-router.get("/get-all-products/:data_amount", AuthMiddleware, async (req, res) => {
+// router.get("/get-all-products/:data_amount", AuthMiddleware, async (req, res) => {
+router.get("/get-all-products/:data_amount", async (req, res) => {
   let { data_amount } = req.params;
   let { data_offset, sub_category_id } = req.query;
-
-  console.log("sub_category_id:", sub_category_id);
 
   data_amount = parseInt(data_amount);
   data_offset = parseInt(data_offset);
@@ -404,5 +403,42 @@ router.get("/get-all-sub-categories/:category_id", async (req, res) => {
     return res.status(500).json({ error: "Server error, try agin!" });
   }
 });
+
+// router.get("/get-hot-deals-products", async (req, res) => {
+//   let { data_amount } = req.params;
+//   let { data_offset, sub_category_id } = req.query;
+
+//   data_amount = parseInt(data_amount);
+//   data_offset = parseInt(data_offset);
+
+//   if (!data_amount || data_amount > 50)
+//     return res.status(400).json({ error: "data_amount is required, max 50" });
+
+//   try {
+//     let allProducts;
+//     if (sub_category_id) {
+//       allProducts = await ProductQueries.selectAllProductDataBySubCategory([
+//         sub_category_id,
+//         data_amount,
+//         data_offset || 0,
+//       ]);
+//     } else {
+//       allProducts = await ProductQueries.selectAllProduct([data_amount, data_offset || 0]);
+//     }
+
+//     if (allProducts.rowCount < 1) return res.status(400).json({ error: "No product found!" });
+
+//     // Iterate over each item in the data array
+//     allProducts.rows.forEach((item) => {
+//       const images = item.images.map((imageString) => JSON.parse(imageString));
+//       item.images = images;
+//     });
+
+//     return res.status(200).json({ data: allProducts.rows });
+//   } catch (error) {
+//     console.log(error);
+//     return res.status(500).json({ error: "Server error, try agin!" });
+//   }
+// });
 
 export default router;
