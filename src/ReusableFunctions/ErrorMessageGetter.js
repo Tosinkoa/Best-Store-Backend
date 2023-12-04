@@ -1,9 +1,8 @@
-export const ErrorMessageGetter = (data) => {
+export const errorMessageGetter = (data) => {
   const result = [];
 
   data.details.forEach((detail) => {
-    const { key, label } = detail.context;
-    result.push({ [key]: label });
+    result.push({ [detail.context.key]: detail.message });
   });
 
   return result;

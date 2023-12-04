@@ -4,6 +4,8 @@ import ProductRoute from "../api/User-APIs/Product/ProductEndpoints.js";
 import CartRoute from "../api/User-APIs/Cart/CartEndpoints.js";
 import BargainRoute from "../api/User-APIs/Bargain/BargainEndpoints.js";
 import SavedItemsRoute from "../api/User-APIs/SavedItems/SavedItemsEndpoints.js";
+import LocationRoute from "../api/User-APIs/Location/LocationEndpoints.js";
+import UserRoute from "../api/User-APIs/User/UserEndpoints.js";
 
 const UserRootRoute = (app) => {
   app.use(AuthenticationRoute);
@@ -12,5 +14,7 @@ const UserRootRoute = (app) => {
   app.use(CartRoute);
   app.use(BargainRoute);
   app.use(SavedItemsRoute);
+  app.use(LocationRoute);
+  app.use(UserRoute);
 };
 export default UserRootRoute;
