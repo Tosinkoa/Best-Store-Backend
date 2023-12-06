@@ -43,4 +43,7 @@ export const CartQueries = {
       ...savedItemData,
     ]);
   },
+  addBulkPoductToCart(cart_products, loggedInUser) {
+
+  },
 };

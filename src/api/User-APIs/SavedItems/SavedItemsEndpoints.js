@@ -63,6 +63,11 @@ router.get("/get-all-saved-items", async (req, res) => {
     if (savedItems.rowCount < 1)
       return res.status(400).json({ error: "You didnot have any product saved!" });
 
+    savedItems.rows.forEach((item) => {
+      const images = item.images.map((imageString) => JSON.parse(imageString));
+      item.images = images;
+    });
+
     return res.status(200).json({ data: savedItems.rows });
   } catch (error) {
     console.log(error);
