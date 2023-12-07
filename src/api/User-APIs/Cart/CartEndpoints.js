@@ -8,6 +8,8 @@ import { CartQueries } from "./CartQueries.js";
 import { errorMessageGetter } from "../../../ReusableFunctions/errorMessageGetter.js";
 const router = express.Router();
 
+const maxCartProduct = 20;
+
 router.post("/add-product-to-cart/:product_id", AuthMiddleware, async (req, res) => {
   const { product_count } = req.body;
   let { product_id } = req.params;
@@ -21,7 +23,7 @@ router.post("/add-product-to-cart/:product_id", AuthMiddleware, async (req, res)
 
   try {
     const userCartData = await CartQueries.selectAllCartIDByUserID(loggedInUser);
-    if (userCartData.rowCount === 20) {
+    if (userCartData.rowCount === maxCartProduct) {
       return res.status(400).json({ error: "You cannot add more than 20 items at once!" });
     }
 
@@ -40,8 +42,8 @@ router.post("/add-product-to-cart/:product_id", AuthMiddleware, async (req, res)
     // If product count exist for product_id, add incoming count to it
     if (productExist.product_count) {
       const newProductCount = productExist.product_count + product_count;
-      if (newProductCount > 20)
-        return res.status(400).json({ error: "Max product count you can add to cart is 20" });
+      if (newProductCount > maxCartProduct)
+        return res.status(400).json({ error: "Max quantity count you can add to cart is 20" });
       await CartQueries.updateCart([newProductCount, product_id, loggedInUser]);
       await CartQueries.deleteCartProductFromSavedItem([product_id, loggedInUser]);
       return res.status(200).json({ message: "Cart updated successfully!" });
@@ -49,6 +51,63 @@ router.post("/add-product-to-cart/:product_id", AuthMiddleware, async (req, res)
       await CartQueries.insertCart([product_id, product_count, loggedInUser]);
       return res.status(200).json({ message: "Product added to cart successfully!" });
     }
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ error: "Server error, try agin!" });
+  }
+});
+
+/**
+ * @Todo Optimize query for adding bulk product to cart
+ * @important
+ */
+router.post("/add-bulk-product-to-cart", AuthMiddleware, async (req, res) => {
+  const { cart_products } = req.body;
+  const loggedInUser = req.session.user;
+
+  /**
+   * @Todo Validate arrray with Joi
+   * @important
+   */
+
+  try {
+    cart_products.map(async (eachCartProduct) => {
+      const eachProductID = eachCartProduct.product_id;
+      const eachProductCount = eachCartProduct.product_count;
+      try {
+        const productData = await CartQueries.selectCartByProductAndUserID([
+          loggedInUser,
+          eachProductID,
+        ]);
+        if (productData.rowCount < 1) {
+          console.log("Product didn't exist");
+          return;
+        }
+
+        const productExist = productData.rows[0];
+        if (productExist.seller_user_id === loggedInUser) {
+          console.log("You cannot add your own product to cart!");
+          return;
+        }
+        // If product count exist for product_id, add incoming count to it
+        if (productExist.product_count) {
+          const newProductCount = productExist.product_count + eachProductCount;
+          if (newProductCount > maxCartProduct) {
+            console.log("Max product quantity you can add to cart is 20");
+            return;
+          }
+          await CartQueries.updateCart([newProductCount, eachProductID, loggedInUser]);
+          await CartQueries.deleteCartProductFromSavedItem([eachProductID, loggedInUser]);
+          console.log("Cart updated successfully!");
+        } else {
+          await CartQueries.insertCart([eachProductID, eachProductCount, loggedInUser]);
+          console.log("Product added to cart successfully!");
+        }
+      } catch (error) {
+        console.log("An error caught while saving bulk cart:", error);
+      }
+    });
+    return res.status(200).json({ message: "Cart updated successfully!" });
   } catch (error) {
     console.log(error);
     return res.status(500).json({ error: "Server error, try agin!" });

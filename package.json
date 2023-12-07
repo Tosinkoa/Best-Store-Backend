@@ -6,6 +6,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "nodemon server.js",
     "start_dev": "pm2 start ecosystem.config.cjs --env development",
     "start_prod": "pm2 start ecosystem.config.cjs --env production",
     "stop_dev": "pm2 stop ecosystem.config.cjs --env development",
@@ -33,6 +34,7 @@
     "joi": "^17.9.2",
     "multer": "^1.4.5-lts.1",
     "node-schedule": "^2.1.0",
+    "nodemon": "^3.0.2",
     "pg": "^8.11.1",
     "qrcode": "^1.5.1",
     "sib-api-v3-sdk": "^8.4.2",
