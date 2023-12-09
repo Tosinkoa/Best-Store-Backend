@@ -44,6 +44,6 @@ export const CartQueries = {
     ]);
   },
   addBulkPoductToCart(cart_products, loggedInUser) {
-
+    
   },
 };

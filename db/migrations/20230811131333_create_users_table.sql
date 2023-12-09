@@ -24,6 +24,7 @@ create table if not exists users (
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );
+
 -----------Create Trigger--------
 create trigger set_timestamp before
 update on users for each row execute procedure trigger_set_timestamp();
