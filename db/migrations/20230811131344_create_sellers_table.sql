@@ -11,6 +11,8 @@ create table if not exists sellers (
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );
+
+CREATE INDEX idx_business_name ON sellers (business_name);
 -----------Create Trigger--------
 create trigger set_timestamp before
 update on sellers for each row execute procedure trigger_set_timestamp();
