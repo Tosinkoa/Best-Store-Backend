@@ -6,6 +6,7 @@ import express from "express";
 import session from "express-session";
 import "./src/LIB/DB-Client.js";
 import AdminRootRoute from "./src/Routes/AdminRootRoute.js";
+import GeneralRootRoute from "./src/Routes/GeneralRootRoute.js";
 import UserRootRoute from "./src/Routes/UserRootRoute.js";
 
 dotenv.config();
@@ -52,6 +53,7 @@ app.get((req, res) => {
 });
 
 UserRootRoute(app);
+GeneralRootRoute(app);
 AdminRootRoute(app);
 
 export default app;

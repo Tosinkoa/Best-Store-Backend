@@ -35,11 +35,11 @@
     "multer": "^1.4.5-lts.1",
     "node-schedule": "^2.1.0",
     "nodemon": "^3.0.2",
+    "otpauth": "^9.2.1",
     "pg": "^8.11.1",
-    "qrcode": "^1.5.1",
+    "qrcode": "^1.5.3",
     "sib-api-v3-sdk": "^8.4.2",
     "socket.io": "^4.5.3",
-    "speakeasy": "^2.0.0",
     "supertest": "^6.3.3",
     "uuid": "^9.0.0"
   }

@@ -11,8 +11,9 @@ router.get("/get-total-seller-count", async (req, res) => {
     let totalSellerCount;
     if (time === "today") {
       totalSellerCount = await SellerQueries.selectTodaySellerCount([roleTitle]);
+    } else {
+      totalSellerCount = await SellerQueries.selectSellerCount([roleTitle]);
     }
-    totalSellerCount = await SellerQueries.selectSellerCount([roleTitle]);
     return res.status(200).json({ data: totalSellerCount.rows[0] });
   } catch (error) {
     console.log(error);
