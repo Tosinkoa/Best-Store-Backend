@@ -13,8 +13,9 @@ router.get("/get-total-user-count", async (req, res) => {
     let totalUserCount;
     if (time === "today") {
       totalUserCount = await UserQueries.selectTodayUserCount([roleTitle1, roleTitle2]);
+    } else {
+      totalUserCount = await UserQueries.selectUserCount([roleTitle1, roleTitle2]);
     }
-    totalUserCount = await UserQueries.selectUserCount([roleTitle1, roleTitle2]);
     return res.status(200).json({ data: totalUserCount.rows[0] });
   } catch (error) {
     console.log(error);

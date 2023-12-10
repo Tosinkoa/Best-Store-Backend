@@ -6,7 +6,7 @@ export const TransactionQueries = {
   },
   selectTodaysSalesCount() {
     return pool.query(
-      "SELECT COUNT(*) AS total_transactions FROM transactions WHERE DATE(created_at) = CURRENT_DATE"
+      "SELECT COUNT(*) AS total_transactions FROM transactions WHERE created_at >= CURRENT_DATE::TIMESTAMP AND created_at < CURRENT_DATE::TIMESTAMP + INTERVAL '1 day'"
     );
   },
   selectTransactionTotalAmount() {
@@ -14,7 +14,7 @@ export const TransactionQueries = {
   },
   selectTodaysTransactionTotalAmount() {
     return pool.query(
-      "SELECT SUM(amount) AS total_transaction_amount FROM transactions WHERE DATE(created_at) = CURRENT_DATE"
+      "SELECT SUM(amount) AS total_transaction_amount FROM transactions WHERE created_at >= CURRENT_DATE::TIMESTAMP AND created_at < CURRENT_DATE::TIMESTAMP + INTERVAL '1 day'"
     );
   },
 };
