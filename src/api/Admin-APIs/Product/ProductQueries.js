@@ -6,7 +6,7 @@ export const ProductQueries = {
   },
   selectTodaysProductCount() {
     return pool.query(
-      "SELECT COUNT(*) AS total_product_count FROM products WHERE DATE(created_at) = CURRENT_DATE"
+      "SELECT COUNT(*) AS total_product_count FROM products WHERE created_at >= CURRENT_DATE::TIMESTAMP AND created_at < CURRENT_DATE::TIMESTAMP + INTERVAL '1 day'"
     );
   },
 };

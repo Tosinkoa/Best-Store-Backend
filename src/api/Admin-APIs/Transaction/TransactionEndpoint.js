@@ -9,8 +9,9 @@ router.get("/get-total-sales-count", async (req, res) => {
     let totalSalesCount;
     if (time === "today") {
       totalSalesCount = await TransactionQueries.selectTodaysSalesCount();
+    } else {
+      totalSalesCount = await TransactionQueries.selectSalesCount();
     }
-    totalSalesCount = await TransactionQueries.selectSalesCount();
     return res.status(200).json({ data: totalSalesCount.rows[0] });
   } catch (error) {
     console.log(error);
@@ -26,8 +27,9 @@ router.get("/get-total-transaction-amount", async (req, res) => {
   try {
     if (time === "today") {
       totalTransactionAmount = await TransactionQueries.selectTodaysTransactionTotalAmount();
+    } else {
+      totalTransactionAmount = await TransactionQueries.selectTransactionTotalAmount();
     }
-    totalTransactionAmount = await TransactionQueries.selectTransactionTotalAmount();
     return res.status(200).json({ data: totalTransactionAmount.rows[0] });
   } catch (error) {
     console.log(error);

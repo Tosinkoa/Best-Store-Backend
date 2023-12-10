@@ -10,8 +10,9 @@ router.get("/get-total-product-count", async (req, res) => {
     let totalProductCount;
     if (time === "today") {
       totalProductCount = await ProductQueries.selectTodaysProductCount();
+    } else {
+      totalProductCount = await ProductQueries.selectProductCount();
     }
-    totalProductCount = await ProductQueries.selectProductCount();
     return res.status(200).json({ data: totalProductCount.rows[0] });
   } catch (error) {
     console.log(error);
