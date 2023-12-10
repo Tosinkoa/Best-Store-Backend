@@ -6,6 +6,7 @@ import {
   validateRegisterUser,
 } from "../../../VALIDATOR/UserValidator/AuthenticationValidator.js";
 import { AuthenticationQueries } from "./AuthenticationQueries.js";
+import { UserAuthMiddleware } from "../../../Middlewares/UserMiddlewares.js";
 const router = express.Router();
 
 /**
@@ -21,8 +22,8 @@ router.post("/register", (req, res, next) => {
 
   req.session.regenerate(async () => {
     try {
-      const userExist = await AuthenticationQueries.selectUserDetailByEmail(email);
-      const phoneNumberExists = await AuthenticationQueries.selectPhoneNumber(phone_number);
+      const userExist = await AuthenticationQueries.selectUserDetailByEmail([email]);
+      const phoneNumberExists = await AuthenticationQueries.selectPhoneNumber([phone_number]);
 
       if (userExist.rowCount > 0)
         return res.status(400).json({ error: "User already exist!" });
@@ -52,11 +53,11 @@ router.post("/login", async (req, res) => {
 
   if (error) return res.status(400).json({ error: errorMessageGetter(error) });
   const { email, password, remember } = req.body;
-  const userData = await AuthenticationQueries.selectUserDetailByEmail(email);
+  const userData = await AuthenticationQueries.selectUserDetailByEmail([email]);
   req.session.regenerate(async () => {
     try {
       const userExist = userData.rows[0];
-      if (userData.rowCount < 1 || userExist.role === "block" || userExist.role === "admin")
+      if (userData.rowCount < 1 || ["block", "admin", "moderator"].includes(userExist.role))
         return res.status(401).json({ error: "Wrong email or password" });
 
       const matches = bcrypt.compareSync(password, userExist.password);
@@ -72,7 +73,24 @@ router.post("/login", async (req, res) => {
   });
 });
 
-router.post("/logout", (req, res, next) => {
+router.get("/check-user-auth", async (req, res) => {
+  const loggedInUser = req.session.user;
+  try {
+    if (!loggedInUser) return res.status(400).send(false);
+    const userData = await AuthenticationQueries.selectLoggedInUserRole([loggedInUser]);
+    const userExist = userData.rows[0];
+    // If user role is block or admin or moderator, dissaprove user
+    if (userData.rowCount < 1 || ["block", "admin", "moderator"].includes(userExist.role)) {
+      if (!loggedInUser) return res.status(400).send(false);
+    }
+
+    return res.status(200).send(true);
+  } catch (e) {
+    res.status(400).send(false);
+  }
+});
+
+router.post("/logout-user", UserAuthMiddleware, (req, res, next) => {
   req.session.user = null;
   req.session.save(function (err) {
     if (err) next(err);
@@ -82,15 +100,6 @@ router.post("/logout", (req, res, next) => {
       return res.status(200).json({ message: "Logged out successfully!" });
     });
   });
-});
-
-router.get("/auth", (req, res) => {
-  try {
-    if (!req.session.user) return res.status(400).send(false);
-    return res.status(200).send(true);
-  } catch (e) {
-    res.status(400).send(false);
-  }
 });
 
 export default router;

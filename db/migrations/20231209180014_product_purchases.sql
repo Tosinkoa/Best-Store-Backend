@@ -4,7 +4,7 @@ create table if not exists product_purchases (
     transaction_id int not null references transactions (id) on delete cascade on update cascade,
     product_id int not null references products (id),
     product_count int not null,
-    metadata text []
+    metadata text [],
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );

@@ -31,4 +31,4 @@ update on users for each row execute procedure trigger_set_timestamp();
 ---------------------------------
 -- migrate:down
 drop table if exists users cascade;
-DROP TYPE user_role;
+drop type user_role;

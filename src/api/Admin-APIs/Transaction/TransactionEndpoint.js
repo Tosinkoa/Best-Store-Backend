@@ -1,8 +1,9 @@
 import express from "express";
 import { TransactionQueries } from "./TransactionQueries.js";
+import { AdminAuthMiddleware } from "../../../Middlewares/AdminMiddlewares.js";
 const router = express.Router();
 
-router.get("/get-total-sales-count", async (req, res) => {
+router.get("/get-total-sales-count", AdminAuthMiddleware, async (req, res) => {
   const { time } = req.query;
 
   try {
@@ -19,7 +20,7 @@ router.get("/get-total-sales-count", async (req, res) => {
   }
 });
 
-router.get("/get-total-transaction-amount", async (req, res) => {
+router.get("/get-total-transaction-amount", AdminAuthMiddleware, async (req, res) => {
   const { time } = req.query;
 
   let totalTransactionAmount;

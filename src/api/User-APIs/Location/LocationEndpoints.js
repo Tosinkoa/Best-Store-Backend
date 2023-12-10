@@ -1,9 +1,9 @@
 import express from "express";
 import { LocationQueries } from "./LocationQueries.js";
-import { AuthMiddleware } from "../../../Middlewares/GeneralMiddlewares.js";
+import { UserAuthMiddleware } from "../../../Middlewares/UserMiddlewares.js";
 const router = express.Router();
 
-router.get("/get-states-in-nigeria", AuthMiddleware, async (req, res) => {
+router.get("/get-states-in-nigeria", UserAuthMiddleware, async (req, res) => {
   try {
     const allStates = await LocationQueries.selectAllStates();
     if (allStates.rowCount < 1) return res.status(400).json({ error: "No state found!" });
@@ -14,7 +14,7 @@ router.get("/get-states-in-nigeria", AuthMiddleware, async (req, res) => {
   }
 });
 
-router.get("/all-lga-by-state-id/:state_id", AuthMiddleware, async (req, res) => {
+router.get("/all-lga-by-state-id/:state_id", UserAuthMiddleware, async (req, res) => {
   let { state_id } = req.params;
   state_id = parseInt(state_id);
   if (!state_id) {

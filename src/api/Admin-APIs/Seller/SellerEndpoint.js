@@ -1,9 +1,10 @@
 import express from "express";
 import { SellerQueries } from "./SellerQueries.js";
+import { AdminAuthMiddleware } from "../../../Middlewares/AdminMiddlewares.js";
 
 const router = express.Router();
 
-router.get("/get-total-seller-count", async (req, res) => {
+router.get("/get-total-seller-count", AdminAuthMiddleware, async (req, res) => {
   const { time } = req.query;
   const roleTitle = "seller";
 
@@ -11,8 +12,9 @@ router.get("/get-total-seller-count", async (req, res) => {
     let totalSellerCount;
     if (time === "today") {
       totalSellerCount = await SellerQueries.selectTodaySellerCount([roleTitle]);
+    } else {
+      totalSellerCount = await SellerQueries.selectSellerCount([roleTitle]);
     }
-    totalSellerCount = await SellerQueries.selectSellerCount([roleTitle]);
     return res.status(200).json({ data: totalSellerCount.rows[0] });
   } catch (error) {
     console.log(error);
