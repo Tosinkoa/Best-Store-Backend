@@ -2,7 +2,9 @@ import bcrypt from "bcrypt";
 import express from "express";
 import { validateLoginUser } from "../../../VALIDATOR/UserValidator/AuthenticationValidator.js";
 import { AuthenticationQueries } from "./AuthenticationQueries.js";
-import * as OTPAuth from "otpauth";
+import { TOTP, Secret } from "otpauth";
+import QRCode from "qrcode";
+import { AdminAuthMiddleware } from "../../../Middlewares/AdminMiddlewares.js";
 
 const router = express.Router();
 
@@ -16,8 +18,10 @@ router.post("/admin/login", async (req, res) => {
     try {
       const ValidAdmin = await AuthenticationQueries.selectAdminDetailByEmail([email]);
       if (ValidAdmin.rowCount < 1) {
+        // Em / No / Ex ==> Email not exist
         return res.status(400).json({
-          error: "E / P, Something went wrong, kindly get in touch with the support.",
+          error:
+            "Em / No / Ex, Something went wrong, if you're seeing this error, kindly reach out to the support.",
         });
       }
       if (ValidAdmin.rows[0].role !== "admin") {
@@ -36,127 +40,193 @@ router.post("/admin/login", async (req, res) => {
   });
 });
 
-router.get(
-  "/admin/otp-setup",
-  /*MW_Valid_Admin_OTP_Section_Middleware,*/ async (req, res) => {
-    try {
-      let totp = new OTPAuth.TOTP({
-        issuer: "ACME",
-        label: "AzureDiamond",
-        algorithm: "SHA1",
-        digits: 6,
-        period: 30,
-        secret: "NB2W45DFOIZA", // or 'OTPAuth.Secret.fromBase32("NB2W45DFOIZA")'
-      });
+router.get("/admin/otp-setup", AdminAuthMiddleware, async (req, res) => {
+  try {
+    const loggedInAdmin = req.session.user;
+    // Generate a new TOTP object
+    const totp = new TOTP({
+      issuer: process.env.NODE_ENV === "production" ? "Best Store" : "Best Store Dev",
+      label: "Admin",
+      algorithm: "SHA1",
+      digits: 6,
+      period: 30,
+      secret: new Secret(),
+    });
 
-      // if (process.env.NODE_ENV === "production") {
-      // secret = totp.generate();
-      // } else {
-      //   secret = totp.generate();
-      // }
+    // Get the TOTP URI
+    const totpUri = totp.toString();
 
-      let token = totp.generate();
-
-      // Validate a token (returns the token delta or null if it is not found in the search window, in which case it should be considered invalid).
-      let delta = totp.validate({ token, window: 1 });
-
-      // Convert to Google Authenticator key URI:
-      // otpauth://totp/ACME:AzureDiamond?issuer=ACME&secret=NB2W45DFOIZA&algorithm=SHA1&digits=6&period=30
-      let uri = totp.toString(); // or 'OTPAuth.URI.stringify(totp)'
-
-      // Convert from Google Authenticator key URI.
-      totp = OTPAuth.URI.parse(uri);
-
-      totp = OTPAuth.URI.parse(uri);
-      console.log("TOTP:", totp);
-      return;
-
-      const AdminSecret = await AuthenticationQueries.selectLoggedInAdminTempSceret(
-        req.session.user
-      );
-      // If secret already exist and user want to generate a QRCode, update the secret else create new one
-      if (AdminSecret.rowCount > 0) {
-        await AuthenticationQueries.updateAdminAuthSecret([secret.base32, req.session.user]);
-      } else {
-        await AuthenticationQueries.insertAdminAuthSecret(secret.base32, req.session.user);
+    // Generate QR Code
+    QRCode.toDataURL(totpUri, async (err, data_url) => {
+      if (err) {
+        return res.status(400).json({ error: "An error occurred, please try again!" });
       }
-      // Get the data URL of the authenticator URL
-      QRCode.toDataURL(secret.otpauth_url, (err, data_url) => {
-        if (err) res.status(400).json({ error: "An error occured pls try again!" });
-        return res.status(200).json({ data: data_url });
-      });
-    } catch (e) {
-      console.log(e);
-      return res.status(500);
-    }
+
+      const isAdminExist = await AuthenticationQueries.selectAdmin([loggedInAdmin]);
+
+      // Check if admin temp_secret exist, then store the secret in the database
+      const validScret = null;
+      if (isAdminExist.rowCount > 0) {
+        await AuthenticationQueries.updateAdminAuthSecret([
+          totp.secret.base32,
+          validScret,
+          loggedInAdmin,
+        ]);
+      } else {
+        await AuthenticationQueries.insertAdminAuthSecret([totp.secret.base32, loggedInAdmin]);
+      }
+      return res.status(200).json({ data: { qr_code: data_url, token: totp.secret.base32 } });
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: "Internal Server Error" });
   }
-);
+});
 
-router.post(
-  "/admin/first-time-otp-verify",
-  /*MW_Valid_Admin_OTP_Section_Middleware,*/
-  async (req, res) => {
-    console.log("/admin/first-time-otp-verify");
-    const { userToken } = req.body;
-    if (!userToken) return res.status(400).json({ error: "Your token is invalid" });
+// First time verification for adding temp secret to valid secret row in the database
+router.post("/admin/first-time-verify-otp", AdminAuthMiddleware, async (req, res) => {
+  const { user_token } = req.body;
+  const loggedInAdmin = req.session.user;
 
-    try {
-      const ValidAdmin = await AuthenticationQueries.selectLoggedInAdminTempSceret(
-        req.session.admin_otp_session
-      );
-      if (ValidAdmin.rowCount < 1)
-        return res.status(400).json({ error: "Something went wrong, pls try again later" });
-      const Verified = speakeasy.totp.verify({
-        secret: ValidAdmin.rows[0].temp_secret,
-        encoding: "base32",
-        token: userToken,
-      });
-
-      if (!Verified)
-        return res.status(400).json({ error: "The code you entered is incorrect!" });
-      await AuthenticationQueries.updateAdminAuth(
-        ValidAdmin.rows[0].temp_secret,
-        CurrentDate(),
-        req.session.admin_otp_session
-      );
-      req.session.admin = req.session.admin_otp_session;
-      delete req.session.admin_otp_session;
-      return res.status(200).json({ data: "Successfully verified" });
-    } catch (e) {
-      console.log(e);
-      return res.status(500);
-    }
+  if (!user_token) {
+    // No / To ==> No Token
+    return res.status(400).json({
+      error:
+        "No / To, Something went wrong, if you're seeing this error, kindly reach out to the support.",
+    });
   }
-);
 
-router.post(
-  "/admin/verify-otp",
-  /* MW_Valid_Admin_OTP_Section_Middleware,*/ async (req, res) => {
-    console.log("/admin/verify-otp");
-    if (!userToken) return res.status(400).json({ error: "Your token is invalid" });
-    try {
-      const ValidAdmin = await AuthenticationQueries.selectAdminValidSecret(
-        req.session.admin_otp_session
-      );
-      if (ValidAdmin.rowCount < 1)
-        return res.status(400).json({ error: "Something went wrong, pls try again later" });
-      if (ValidAdmin.rowCount > 0 && ValidAdmin.rows[0].valid_secret === null)
-        return res.status(400).json({ error: "Something went wrong, pls try again later" });
-      const Verified = speakeasy.totp.verify({
-        secret: ValidAdmin.rows[0].valid_secret,
-        encoding: "base32",
-        token: userToken,
+  try {
+    // Retrieve the stored secret from the database
+    const adminSecret = await AuthenticationQueries.selectLoggedInAdminScerets([
+      loggedInAdmin,
+    ]);
+    // No / Se / Ot ==> Not setup otp
+    if (adminSecret.rowCount < 1) {
+      return res.status(400).json({
+        error:
+          "No / Se / Ot, Something went wrong, if you're seeing this error, kindly reach out to the support.",
       });
-      if (!Verified)
-        return res.status(400).json({ error: "The code you entered is incorrect!" });
-      req.session.admin = req.session.admin_otp_session;
-      delete req.session.admin_otp_session;
-      return res.status(200).json({ data: "Successfully verified" });
-    } catch (e) {
-      console.log(e);
-      return res.status(500);
     }
+    // If there is no temporary secret, this means admin has made a first time verification
+    const adminTempSecret = adminSecret.rows[0].temp_secret;
+    if (!adminTempSecret) {
+      return res.status(400).json({ error: "Duplicate verification detected!" });
+    }
+
+    const totp = new TOTP({
+      secret: adminTempSecret,
+      algorithm: "SHA1",
+      digits: 6,
+      period: 30,
+    });
+
+    const isValidToken = totp.validate({
+      token: user_token,
+      window: 1,
+    });
+
+    if (!isValidToken) {
+      return res.status(400).json({ error: "The code you entered is incorrect!" });
+    }
+
+    const newTempSecret = null;
+    // Change temp_secret to valid secret in the database
+    await AuthenticationQueries.updateAdminSecrets([
+      newTempSecret,
+      adminSecret.rows[0].temp_secret,
+      loggedInAdmin,
+    ]);
+
+    return res.status(200).json({ data: "Successfully verified" });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: "Internal Server Error" });
   }
-);
+});
+
+// This check if the user auth is valid using the valid_secret
+router.post("/admin/verify-otp", AdminAuthMiddleware, async (req, res) => {
+  const { user_token } = req.body;
+  const loggedInAdmin = req.session.user;
+
+  if (!user_token) {
+    // No / To ==> No Token
+    return res.status(400).json({
+      error:
+        "No / To, Something went wrong, if you're seeing this error, kindly reach out to the support.",
+    });
+  }
+
+  try {
+    // Retrieve the stored secret from the database
+    const adminSecret = await AuthenticationQueries.selectLoggedInAdminScerets([
+      loggedInAdmin,
+    ]);
+    // No / Se / Ot ==> Not setup otp
+    if (adminSecret.rowCount < 1) {
+      return res.status(400).json({
+        error:
+          "No / Se / Ot, Something went wrong, if you're seeing this error, kindly reach out to the support.",
+      });
+    }
+    const adminValidSecret = adminSecret.rows[0].valid_secret;
+    // If there is no valid secret, this means admin is yet to do a first time verification
+    if (!adminValidSecret) {
+      return res.status(400).json({ error: "First time verification is required!" });
+    }
+
+    const totp = new TOTP({
+      secret: adminValidSecret,
+      algorithm: "SHA1",
+      digits: 6,
+      period: 30,
+    });
+
+    const isValidToken = totp.validate({
+      token: user_token,
+      // timestamp: 0,
+      window: 1,
+    });
+
+    if (!isValidToken) {
+      return res.status(400).json({ error: "The code you entered is incorrect!" });
+    }
+
+    return res.status(200).json({ data: "Successfully verified" });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+router.get("/check-admin-auth", async (req, res) => {
+  const loggedInAdmin = req.session.user;
+  try {
+    if (!loggedInAdmin) return res.status(400).send(false);
+    const userData = await AuthenticationQueries.selectLoggedInUserRole([loggedInAdmin]);
+    const userExist = userData.rows[0];
+    // If user role is block or admin or moderator, dissaprove user
+    if (userData.rowCount < 1 || userExist.role !== "admin") {
+      return res.status(400).send(false);
+    }
+
+    return res.status(200).send(true);
+  } catch (e) {
+    res.status(400).send(false);
+  }
+});
+
+router.post("/logout-admin", AdminAuthMiddleware, (req, res, next) => {
+  req.session.user = null;
+  req.session.save(function (err) {
+    if (err) next(err);
+    req.session.regenerate(function (err) {
+      console.log(err);
+      if (err) next(err);
+      return res.status(200).json({ message: "Logged out successfully!" });
+    });
+  });
+});
 
 export default router;

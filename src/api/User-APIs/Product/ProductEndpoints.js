@@ -1,6 +1,6 @@
 import express from "express";
 import { multerImage } from "../../../LIB/multer.js";
-import { AuthMiddleware } from "../../../Middlewares/GeneralMiddlewares.js";
+import { UserAuthMiddleware } from "../../../Middlewares/UserMiddlewares.js";
 import {
   cloudinaryImageDeleter,
   cloudinaryImageSaver,
@@ -17,7 +17,7 @@ const router = express.Router();
  */
 
 /** @Note Route to create new product */
-router.post("/create-new-product", AuthMiddleware, async (req, res) => {
+router.post("/create-new-product", UserAuthMiddleware, async (req, res) => {
   const MAX_IMAGE_COUNT = 8;
   const PRODUCT_IMAGES = multerImage.array("product_image", MAX_IMAGE_COUNT);
   PRODUCT_IMAGES(req, res, async (err) => {
@@ -104,7 +104,7 @@ router.post("/create-new-product", AuthMiddleware, async (req, res) => {
 /**
  * @Note Route to edit product by product_id
  */
-router.put("/edit-product/:product_id", AuthMiddleware, async (req, res) => {
+router.put("/edit-product/:product_id", UserAuthMiddleware, async (req, res) => {
   const MAX_IMAGE_COUNT = 8;
   const PRODUCT_IMAGES = multerImage.array("product_image", MAX_IMAGE_COUNT);
   PRODUCT_IMAGES(req, res, async (err) => {
@@ -223,7 +223,7 @@ router.put("/edit-product/:product_id", AuthMiddleware, async (req, res) => {
   });
 });
 
-router.get("/get-a-product/:product_id", AuthMiddleware, async (req, res) => {
+router.get("/get-a-product/:product_id", UserAuthMiddleware, async (req, res) => {
   let { product_id } = req.params;
   product_id = parseInt(product_id);
 
@@ -245,7 +245,10 @@ router.get("/get-a-product/:product_id", AuthMiddleware, async (req, res) => {
   }
 });
 
-// router.get("/get-all-products/:data_amount", AuthMiddleware, async (req, res) => {
+/**
+ * @Todo Block this route once admin product endpoint is created
+ */
+// router.get("/get-all-products/:data_amount", UserAuthMiddleware, async (req, res) => {
 router.get("/get-all-products/:data_amount", async (req, res) => {
   let { data_amount } = req.params;
   let { data_offset, sub_category_id } = req.query;
@@ -283,7 +286,7 @@ router.get("/get-all-products/:data_amount", async (req, res) => {
   }
 });
 
-router.get("/get-a-seller-products/:data_amount", AuthMiddleware, async (req, res) => {
+router.get("/get-a-seller-products/:data_amount", UserAuthMiddleware, async (req, res) => {
   let { data_amount } = req.params;
   let { data_offset } = req.query;
   const loggedInUser = req.session.user;
@@ -321,7 +324,7 @@ router.get("/get-a-seller-products/:data_amount", AuthMiddleware, async (req, re
   }
 });
 
-router.delete("/delete-product-image/:product_id", AuthMiddleware, async (req, res) => {
+router.delete("/delete-product-image/:product_id", UserAuthMiddleware, async (req, res) => {
   let { product_id } = req.params;
   const { image_key } = req.body;
   product_id = parseInt(product_id);

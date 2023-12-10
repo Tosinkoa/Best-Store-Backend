@@ -1,5 +1,5 @@
 import express from "express";
-import { AuthMiddleware } from "../../../Middlewares/GeneralMiddlewares.js";
+import { UserAuthMiddleware } from "../../../Middlewares/UserMiddlewares.js";
 import {
   validateAddToCart,
   validateRemoveFromCart,
@@ -10,7 +10,7 @@ const router = express.Router();
 
 const maxCartProduct = 20;
 
-router.post("/add-product-to-cart/:product_id", AuthMiddleware, async (req, res) => {
+router.post("/add-product-to-cart/:product_id", UserAuthMiddleware, async (req, res) => {
   const { product_count } = req.body;
   let { product_id } = req.params;
   const loggedInUser = req.session.user;
@@ -61,7 +61,7 @@ router.post("/add-product-to-cart/:product_id", AuthMiddleware, async (req, res)
  * @Todo Optimize query for adding bulk product to cart
  * @important
  */
-router.post("/add-bulk-product-to-cart", AuthMiddleware, async (req, res) => {
+router.post("/add-bulk-product-to-cart", UserAuthMiddleware, async (req, res) => {
   const { cart_products } = req.body;
   const loggedInUser = req.session.user;
 
@@ -117,7 +117,7 @@ router.post("/add-bulk-product-to-cart", AuthMiddleware, async (req, res) => {
 /**
  * @todo Pass string as an id to check if database will throw error.
  */
-router.put("/remove-product-from-cart/:cart_id", AuthMiddleware, async (req, res) => {
+router.put("/remove-product-from-cart/:cart_id", UserAuthMiddleware, async (req, res) => {
   let { cart_id } = req.params;
   const { product_count } = req.body;
   const loggedInUser = req.session.user;

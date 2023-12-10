@@ -1,11 +1,10 @@
-import { multerImage } from "../../../LIB/multer.js";
-import { AuthMiddleware } from "../../../Middlewares/GeneralMiddlewares.js";
+import { UserAuthMiddleware } from "../../../Middlewares/UserMiddlewares.js";
 import { cloudinaryImageSaver } from "../../../ReusableFunctions/cloudinaryAction.js";
 import { UserQueries } from "./UserQueries.js";
 import express from "express";
 const router = express.Router();
 
-router.put("/setup-profile", AuthMiddleware, async (req, res) => {
+router.put("/setup-profile", UserAuthMiddleware, async (req, res) => {
   const PROFILE_PICTURE = multerImage.single("profile_picture");
   PROFILE_PICTURE(req, res, async (err) => {
     const { first_name, last_name, phone_number } = req.body;
@@ -52,7 +51,7 @@ router.put("/setup-profile", AuthMiddleware, async (req, res) => {
   });
 });
 
-router.get("/get-logged-in-user", AuthMiddleware, async (req, res) => {
+router.get("/get-logged-in-user", UserAuthMiddleware, async (req, res) => {
   const loggedInUser = req.session.user;
   try {
     const loggedInUserData = await UserQueries.selectLoggedInUser(loggedInUser);

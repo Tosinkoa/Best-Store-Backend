@@ -1,9 +1,10 @@
 import express from "express";
 import { SellerQueries } from "./SellerQueries.js";
+import { AdminAuthMiddleware } from "../../../Middlewares/AdminMiddlewares.js";
 
 const router = express.Router();
 
-router.get("/get-total-seller-count", async (req, res) => {
+router.get("/get-total-seller-count", AdminAuthMiddleware, async (req, res) => {
   const { time } = req.query;
   const roleTitle = "seller";
 

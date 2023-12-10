@@ -3,7 +3,7 @@ import { SellerQueries } from "./SellerQueries.js";
 import { multerImage } from "../../../LIB/multer.js";
 import cloudinary from "../../../LIB/cloudinary.js";
 import pool from "../../../LIB/DB-Client.js";
-import { AuthMiddleware } from "../../../Middlewares/GeneralMiddlewares.js";
+import { UserAuthMiddleware } from "../../../Middlewares/UserMiddlewares.js";
 import { validateSeller } from "../../../VALIDATOR/UserValidator/SellerValidator.js";
 import { errorMessageGetter } from "../../../ReusableFunctions/errorMessageGetter.js";
 const router = express.Router();
@@ -18,7 +18,7 @@ const router = express.Router();
  */
 
 const BUSINESS_LOGO = multerImage.single("business_logo");
-router.post("/setup-seller-account", AuthMiddleware, (req, res) => {
+router.post("/setup-seller-account", UserAuthMiddleware, (req, res) => {
   BUSINESS_LOGO(req, res, async (err) => {
     const { business_name, about, state, city } = req.body;
     const loggedInUser = req.session.user;
@@ -118,7 +118,7 @@ router.post("/setup-seller-account", AuthMiddleware, (req, res) => {
   });
 });
 
-router.get("/get-a-sellers/:seller_id", AuthMiddleware, async (req, res) => {
+router.get("/get-a-sellers/:seller_id", UserAuthMiddleware, async (req, res) => {
   let { seller_id } = req.params;
   seller_id = parseInt(seller_id);
 
@@ -137,7 +137,7 @@ router.get("/get-a-sellers/:seller_id", AuthMiddleware, async (req, res) => {
   }
 });
 
-router.get("/get-logged-in-seller", AuthMiddleware, async (req, res) => {
+router.get("/get-logged-in-seller", UserAuthMiddleware, async (req, res) => {
   const loggedInUser = req.session.user;
 
   try {
@@ -152,7 +152,7 @@ router.get("/get-logged-in-seller", AuthMiddleware, async (req, res) => {
   }
 });
 
-router.get("/get-all-sellers/:data_amount", AuthMiddleware, async (req, res) => {
+router.get("/get-all-sellers/:data_amount", UserAuthMiddleware, async (req, res) => {
   let { data_amount } = req.params;
   let { data_offset } = req.query;
   data_amount = parseInt(data_amount);
