@@ -2711,11 +2711,6 @@ jsprim@^1.2.2:
     json-schema "0.4.0"
     verror "1.10.0"
 
-jssha@~3.3.1:
-  version "3.3.1"
-  resolved "https://registry.yarnpkg.com/jssha/-/jssha-3.3.1.tgz#c5b7fc7fb9aa745461923b87df0e247dd59c7ea8"
-  integrity sha512-VCMZj12FCFMQYcFLPRm/0lOBbLi8uM2BhXPTqw3U4YAfs4AZfiApOoBLoN8cQE60Z50m1MYMTQVCfgF/KaCVhQ==
-
 kleur@^3.0.3:
   version "3.0.3"
   resolved "https://registry.yarnpkg.com/kleur/-/kleur-3.0.3.tgz#a79c9ecc86ee1ce3fa6206d1216c501f147fc07e"
@@ -3098,13 +3093,6 @@ onetime@^5.1.2:
   integrity sha512-kbpaSSGJTWdAY5KPVeMOKXSrPtr8C8C7wodJbcsd51jRnmD+GZu8Y0VoU6Dm5Z4vWr0Ig/1NKuWRKf7j5aaYSg==
   dependencies:
     mimic-fn "^2.1.0"
-
-otpauth@^9.2.1:
-  version "9.2.1"
-  resolved "https://registry.yarnpkg.com/otpauth/-/otpauth-9.2.1.tgz#6e57304a7c79f19d4602382b5618ce2407b8e0a7"
-  integrity sha512-/MRvcm63pzK20NCsIOe8Btun42/yWNylPbUo/h5dMpSRJpoAJstWodEUjm4zUDeT1+Vbqif2E8IcP4trl1U4gQ==
-  dependencies:
-    jssha "~3.3.1"
 
 otplib@^12.0.1:
   version "12.0.1"
