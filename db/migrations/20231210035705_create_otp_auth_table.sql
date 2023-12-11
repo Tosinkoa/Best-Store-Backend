@@ -3,6 +3,7 @@ create table if not exists otp_auth (
     id int primary key generated always as identity,
     temp_secret text,
     valid_secret text,
+    verified boolean not null default false,
     user_id integer not null references users(id) on delete cascade on update cascade,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()

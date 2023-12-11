@@ -9,7 +9,6 @@ import { AdminAuthMiddleware } from "../../../Middlewares/AdminMiddlewares.js";
 const router = express.Router();
 
 router.post("/admin/login", async (req, res) => {
-  console.log("/admin/login");
   const { email, password } = req.body;
 
   const { error } = validateLoginUser(req.body);
@@ -41,8 +40,19 @@ router.post("/admin/login", async (req, res) => {
 });
 
 router.get("/admin/otp-setup", AdminAuthMiddleware, async (req, res) => {
+  const loggedInAdmin = req.session.user;
   try {
-    const loggedInAdmin = req.session.user;
+    // Check if user already have a valid
+    const adminSecret = await AuthenticationQueries.selectLoggedInAdminScerets([
+      loggedInAdmin,
+    ]);
+    if (adminSecret?.rows[0]?.temp_secret || adminSecret?.rows[0]?.valid_secret) {
+      // Al / Ve ==> Already verified
+      return res.status(400).json({
+        error:
+          "Al / Ve, Something went wrong, if you're seeing this error, kindly reach out to the support.",
+      });
+    }
     // Generate a new TOTP object
     const totp = new TOTP({
       issuer: process.env.NODE_ENV === "production" ? "Best Store" : "Best Store Dev",
@@ -101,6 +111,7 @@ router.post("/admin/first-time-verify-otp", AdminAuthMiddleware, async (req, res
     const adminSecret = await AuthenticationQueries.selectLoggedInAdminScerets([
       loggedInAdmin,
     ]);
+
     // No / Se / Ot ==> Not setup otp
     if (adminSecret.rowCount < 1) {
       return res.status(400).json({
@@ -131,9 +142,11 @@ router.post("/admin/first-time-verify-otp", AdminAuthMiddleware, async (req, res
     }
 
     const newTempSecret = null;
+    const verified = true;
     // Change temp_secret to valid secret in the database
-    await AuthenticationQueries.updateAdminSecrets([
+    await AuthenticationQueries.updateAllAdminSecrets([
       newTempSecret,
+      verified,
       adminSecret.rows[0].temp_secret,
       loggedInAdmin,
     ]);
@@ -193,6 +206,9 @@ router.post("/admin/verify-otp", AdminAuthMiddleware, async (req, res) => {
       return res.status(400).json({ error: "The code you entered is incorrect!" });
     }
 
+    const verified = true;
+    await AuthenticationQueries.updateAdminOtpVerified([verified, loggedInAdmin]);
+
     return res.status(200).json({ data: "Successfully verified" });
   } catch (e) {
     console.error(e);
@@ -200,7 +216,39 @@ router.post("/admin/verify-otp", AdminAuthMiddleware, async (req, res) => {
   }
 });
 
-router.get("/check-admin-auth", async (req, res) => {
+// Check if admin had verify the otp after logging in
+router.get("/admin/check-admin-verify-otp", AdminAuthMiddleware, async (req, res) => {
+  const loggedInAdmin = req.session.user;
+  try {
+    const adminSecret = await AuthenticationQueries.selectLoggedInAdminScerets([
+      loggedInAdmin,
+    ]);
+    const allAdminSecrets = adminSecret.rows[0];
+    if (adminSecret.rowCount < 1 || !allAdminSecrets.verified)
+      return res.status(400).send(false);
+
+    return res.status(200).send(true);
+  } catch (e) {
+    res.status(400).send(false);
+  }
+});
+
+// Check if admin added an otp before
+router.get("/admin/check-admin-added-otp", AdminAuthMiddleware, async (req, res) => {
+  const loggedInAdmin = req.session.user;
+  try {
+    const adminSecret = await AuthenticationQueries.selectLoggedInAdminScerets([
+      loggedInAdmin,
+    ]);
+    if (adminSecret.rowCount < 1)
+      return res.status(400).json({ error: "You're yet to setup otp" });
+    return res.status(200).json({ message: "Otp detected!" });
+  } catch (e) {
+    res.status(400).send(false);
+  }
+});
+
+router.get("/admin/check-admin-auth", async (req, res) => {
   const loggedInAdmin = req.session.user;
   try {
     if (!loggedInAdmin) return res.status(400).send(false);
@@ -213,20 +261,30 @@ router.get("/check-admin-auth", async (req, res) => {
 
     return res.status(200).send(true);
   } catch (e) {
+    console.log(e);
     res.status(400).send(false);
   }
 });
 
-router.post("/logout-admin", AdminAuthMiddleware, (req, res, next) => {
-  req.session.user = null;
-  req.session.save(function (err) {
-    if (err) next(err);
-    req.session.regenerate(function (err) {
-      console.log(err);
+router.post("/admin/logout", AdminAuthMiddleware, async (req, res, next) => {
+  const loggedInAdmin = req.session.user;
+  try {
+    const verified = false;
+    await AuthenticationQueries.updateAdminOtpVerified([verified, loggedInAdmin]);
+    req.session.user = null;
+    req.session.save(function (err) {
       if (err) next(err);
-      return res.status(200).json({ message: "Logged out successfully!" });
+      req.session.regenerate(function (err) {
+        console.log(err);
+        if (err) next(err);
+        return res.status(200).json({ message: "Logged out successfully!" });
+      });
     });
-  });
+  } catch (e) {
+    console.error(e);
+    return res.status(200);
+    // return res.status(500).json({ error: "Internal Server Error" });
+  }
 });
 
 export default router;
