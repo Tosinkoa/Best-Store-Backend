@@ -7,6 +7,10 @@ export const AuthenticationQueries = {
     ]);
   },
 
+  selectAdminEmailByID(payload) {
+    return pool.query("SELECT id, email FROM users WHERE id = $1", [...payload]);
+  },
+
   selectAdmin(payload) {
     return pool.query("SELECT id FROM otp_auth WHERE user_id = $1", [...payload]);
   },
@@ -18,11 +22,21 @@ export const AuthenticationQueries = {
     );
   },
 
-  updateAdminSecrets(payload) {
+  updateAdminOtpVerified(payload) {
+    return pool.query("UPDATE otp_auth SET verified = $1 WHERE user_id = $2", [...payload]);
+  },
+
+  updateAllAdminSecrets(payload) {
     return pool.query(
-      "UPDATE admin_auth SET temp_secret = $1, valid_secret = $2, WHERE user_id = $3",
+      "UPDATE otp_auth SET temp_secret = $1, verified = $2, valid_secret = $3 WHERE user_id = $4",
       [...payload]
     );
+  },
+
+  updateAdminSecrets(payload) {
+    return pool.query("UPDATE otp_auth SET valid_secret = $1 WHERE user_id = $2", [
+      ...payload,
+    ]);
   },
 
   insertAdminAuthSecret(payload) {
@@ -32,12 +46,13 @@ export const AuthenticationQueries = {
   },
 
   selectLoggedInUserRole(payload) {
-    return pool.query("SELECT role FROM users WHERE user_id = $1", [...payload]);
+    return pool.query("SELECT role FROM users WHERE id = $1", [...payload]);
   },
 
   selectLoggedInAdminScerets(payload) {
-    return pool.query("SELECT temp_secret, valid_secret FROM otp_auth WHERE user_id = $1", [
-      ...payload,
-    ]);
+    return pool.query(
+      "SELECT temp_secret, valid_secret, verified FROM otp_auth WHERE user_id = $1",
+      [...payload]
+    );
   },
 };

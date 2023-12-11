@@ -1,9 +1,10 @@
 import express from "express";
 import { UserQueries } from "./UserQueries.js";
+import { AdminAuthAndOtpVerifiedMiddleware } from "../../../Middlewares/AdminMiddlewares.js";
 
 const router = express.Router();
 
-router.get("/get-total-user-count", async (req, res) => {
+router.get("/get-total-user-count", AdminAuthAndOtpVerifiedMiddleware, async (req, res) => {
   const { time } = req.query;
 
   const roleTitle1 = "admin";

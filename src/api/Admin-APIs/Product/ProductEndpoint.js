@@ -1,10 +1,10 @@
 import express from "express";
+import { AdminAuthAndOtpVerifiedMiddleware } from "../../../Middlewares/AdminMiddlewares.js";
 import { ProductQueries } from "./ProductQueries.js";
-import { AdminAuthMiddleware } from "../../../Middlewares/AdminMiddlewares.js";
 
 const router = express.Router();
 
-router.get("/get-total-product-count", AdminAuthMiddleware, async (req, res) => {
+router.get("/get-total-product-count", AdminAuthAndOtpVerifiedMiddleware, async (req, res) => {
   const { time } = req.query;
 
   try {
