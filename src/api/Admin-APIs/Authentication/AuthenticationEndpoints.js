@@ -66,8 +66,7 @@ router.get("/admin/otp-setup", AdminAuthMiddleware, async (req, res) => {
     // Generate a new TOTP secret
     const totpSecret = authenticator.generateSecret();
     // Get the TOTP URI
-    const serviceName =
-      process.env.NODE_ENV === "production" ? "Best Store" : "Best Store Dev";
+    const serviceName = process.env.NODE_ENV === "production" ? "Dmore" : "Dmore Dev";
     const totpUri = totp.keyuri(adminData.rows[0].email, serviceName, totpSecret);
 
     // Generate QR Code
