@@ -7,6 +7,10 @@ export const AuthenticationQueries = {
     ]);
   },
 
+  selectAdminEmailByID(payload) {
+    return pool.query("SELECT id, email FROM users WHERE id = $1", [...payload]);
+  },
+
   selectAdmin(payload) {
     return pool.query("SELECT id FROM otp_auth WHERE user_id = $1", [...payload]);
   },
