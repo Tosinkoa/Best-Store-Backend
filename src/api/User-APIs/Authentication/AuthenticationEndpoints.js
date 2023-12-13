@@ -7,6 +7,7 @@ import {
 } from "../../../VALIDATOR/UserValidator/AuthenticationValidator.js";
 import { AuthenticationQueries } from "./AuthenticationQueries.js";
 import { UserAuthMiddleware } from "../../../Middlewares/UserMiddlewares.js";
+import SendEmail from "../../../LIB/SendEmail.js";
 const router = express.Router();
 
 /**
@@ -87,6 +88,67 @@ router.get("/check-user-auth", async (req, res) => {
     return res.status(200).send(true);
   } catch (e) {
     res.status(400).send(false);
+  }
+});
+
+router.get("/create-user-otp", async (req, res) => {
+  const loggedInUser = req.session.user;
+  const otpVerificationCode = String(Math.floor(Math.random() * 1e6)).padStart(6, "0");
+  try {
+    // Generate 6 code length and hash it with bcrypt
+    const userData = await AuthenticationQueries.selectLoggedInUserRole([loggedInUser]);
+    const userSecret = await AuthenticationQueries.insertUserAuthSecret([loggedInUser]);
+    const hashedOtpVerificationCode = bcrypt.hashSync(otpVerificationCode, 10);
+
+    if (userSecret.rowCount < 0) {
+      // Save the hashed version to the database
+      await AuthenticationQueries.insertUserAuthSecret([
+        hashedOtpVerificationCode,
+        loggedInUser,
+      ]);
+    } else {
+      // Update already existing user secret
+      await AuthenticationQueries.updateUserSecrets([hashedOtpVerificationCode, loggedInUser]);
+    }
+
+    // Send the unhashed version to user mail
+    const receiver = userData.rows[0].email;
+    const subject = `Dmore OTP Code is ${otpVerificationCode}`;
+    const textContent = `<div>
+      <p>
+        Below is your one time passcode that you need to use to complete your authentication. The
+        verification code will be valid for 30 minutes. Please do not share this code with anyone.
+      </p>
+      <p>${otpVerificationCode}</p>
+      <p>If you are having any issues with your account, please don't hesitate to contact us.</p>
+    </div>`;
+
+    await SendEmail(receiver, subject, textContent);
+    res.status(200).json({ message: "Token created successfully!" });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ error: "Server error, try agin!" });
+  }
+});
+
+router.post("/validate-user-otp", UserAuthMiddleware, async (req, res, next) => {
+  const loggedInUser = req.session.user;
+  const { token } = req.body;
+  if (!token) return res.status(400).json({ error: "token is required" });
+  try {
+    const userSecret = await AuthenticationQueries.insertUserAuthSecret([loggedInUser]);
+    const TokenCreatedTime = userSecret.rows[0].updated_at;
+    const TokenExpireTime = dayjs(TokenCreatedTime).add(1, "hour").format();
+    const TokenHasExpired = dayjs(CurrentDate).isAfter(TokenExpireTime);
+    if (TokenHasExpired) return res.status(400).json({ error: "Invalid token!" });
+
+    const tokenIsValid = bcrypt.compareSync(token, userSecret.rows[0].valid_secret);
+    if (!tokenIsValid) return res.status(400).json({ error: "token is invalid" });
+
+    return res.status(200).json({ message: "Valid token!" });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ error: "Server error, try agin!" });
   }
 });
 
