@@ -281,8 +281,7 @@ router.post("/admin/logout", AdminAuthMiddleware, async (req, res, next) => {
     });
   } catch (e) {
     console.error(e);
-    return res.status(200);
-    // return res.status(500).json({ error: "Internal Server Error" });
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
