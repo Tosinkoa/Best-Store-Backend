@@ -29,14 +29,19 @@ export const AuthenticationQueries = {
   },
 
   selectLoggedInUserScerets(payload) {
-    return pool.query("SELECT id, valid_secret, updated_at FROM otp_auth WHERE user_id = $1", [
-      ...payload,
-    ]);
+    return pool.query(
+      "SELECT id, valid_secret, verified, updated_at FROM otp_auth WHERE user_id = $1",
+      [...payload]
+    );
   },
 
   updateUserSecrets(payload) {
     return pool.query("UPDATE otp_auth SET valid_secret = $1 WHERE user_id = $2", [
       ...payload,
     ]);
+  },
+
+  updateUserVerified(payload) {
+    return pool.query("UPDATE otp_auth SET verified = $1 WHERE user_id = $2", [...payload]);
   },
 };
