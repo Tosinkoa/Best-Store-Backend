@@ -104,8 +104,6 @@ router.get("/create-user-otp", UserAuthMiddleware, async (req, res) => {
     const userData = await AuthenticationQueries.selectLoggedInUserRole([loggedInUser]);
     const hashedOtpVerificationCode = bcrypt.hashSync(otpVerificationCode, 10);
 
-    console.log("userSecret.rowCount:", userSecret.rowCount);
-    console.log("userSecret.rows[0]:", userSecret.rows[0]);
     if (userSecret.rowCount < 1) {
       // Save the hashed version to the database
       await AuthenticationQueries.insertUserAuthSecret([
