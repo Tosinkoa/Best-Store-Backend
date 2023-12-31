@@ -1,5 +1,7 @@
+import crypto from "crypto";
 import express from "express";
 import { multerImage } from "../../../LIB/multer.js";
+import { getTransaction, makePayment } from "../../../LIB/paystack.js";
 import { UserAuthMiddleware } from "../../../Middlewares/UserMiddlewares.js";
 import {
   cloudinaryImageDeleter,
@@ -8,6 +10,7 @@ import {
 import { errorMessageGetter } from "../../../ReusableFunctions/errorMessageGetter.js";
 import { validateProduct } from "../../../VALIDATOR/UserValidator/ProductValidator.js";
 import { ProductQueries } from "./ProductQueries.js";
+const paystackSecret = process.env.PAYSTACK_SECRET_KEY;
 
 const router = express.Router();
 
@@ -286,43 +289,88 @@ router.get("/get-all-products/:data_amount", async (req, res) => {
   }
 });
 
-router.get("/get-a-seller-products/:data_amount", UserAuthMiddleware, async (req, res) => {
-  let { data_amount } = req.params;
-  let { data_offset } = req.query;
-  const loggedInUser = req.session.user;
+router.get(
+  "/get-loggedin-seller-products/:data_amount",
+  UserAuthMiddleware,
+  async (req, res) => {
+    let { data_amount } = req.params;
+    let { data_offset } = req.query;
+    const loggedInUser = req.session.user;
 
-  data_amount = parseInt(data_amount);
-  data_offset = parseInt(data_offset);
+    data_amount = parseInt(data_amount);
+    data_offset = parseInt(data_offset);
 
-  if (!data_amount || data_amount > 50)
-    return res.status(400).json({ error: "data_amount is required, max 50" });
+    if (!data_amount || data_amount > 50)
+      return res.status(400).json({ error: "data_amount is required, max 50" });
 
-  const sellerDetails = await ProductQueries.selectOneSeller(loggedInUser);
-  if (sellerDetails.rowCount < 1) {
-    return res.status(403).json({ error: "Unauthorized, you're not a seller!" });
+    const sellerDetails = await ProductQueries.selectOneSeller(loggedInUser);
+    if (sellerDetails.rowCount < 1) {
+      return res.status(403).json({ error: "Unauthorized, you're not a seller!" });
+    }
+    try {
+      const allProducts = await ProductQueries.selectAllProductBySellerID([
+        sellerDetails.rows[0].seller_id,
+        data_amount,
+        data_offset || "0",
+      ]);
+
+      if (allProducts.rowCount < 1)
+        return res.status(400).json({ error: "You have no product!" });
+
+      // Iterate over each item in the data array
+      allProducts.rows.forEach((item) => {
+        const images = item?.images?.map((imageString) => JSON.parse(imageString));
+        item.images = images;
+      });
+
+      return res.status(200).json({ data: allProducts.rows });
+    } catch (error) {
+      console.log(error);
+      return res.status(500).json({ error: "Server error, try agin!" });
+    }
   }
-  try {
-    const allProducts = await ProductQueries.selectAllProductBySellerID([
-      sellerDetails.rows[0].seller_id,
-      data_amount,
-      data_offset || "0",
-    ]);
+);
 
-    if (allProducts.rowCount < 1)
-      return res.status(400).json({ error: "You have no product!" });
+router.get(
+  "/get-products-by-seller-id/:seller_id/:data_amount",
+  UserAuthMiddleware,
+  async (req, res) => {
+    let { data_amount, seller_id } = req.params;
+    let { data_offset } = req.query;
 
-    // Iterate over each item in the data array
-    allProducts.rows.forEach((item) => {
-      const images = item?.images?.map((imageString) => JSON.parse(imageString));
-      item.images = images;
-    });
+    data_amount = parseInt(data_amount);
+    data_offset = parseInt(data_offset);
+    seller_id = parseInt(seller_id);
 
-    return res.status(200).json({ data: allProducts.rows });
-  } catch (error) {
-    console.log(error);
-    return res.status(500).json({ error: "Server error, try agin!" });
+    if (!data_amount || data_amount > 50)
+      return res.status(400).json({ error: "data_amount is required, max 50" });
+
+    if (!seller_id)
+      return res.status(400).json({ error: "seller_id is required and must be a number" });
+
+    try {
+      const allProducts = await ProductQueries.selectAllProductBySellerID([
+        seller_id,
+        data_amount,
+        data_offset || "0",
+      ]);
+
+      if (allProducts.rowCount < 1)
+        return res.status(400).json({ error: "Product not found for seller!" });
+
+      // Iterate over each item in the data array
+      allProducts.rows.forEach((item) => {
+        const images = item?.images?.map((imageString) => JSON.parse(imageString));
+        item.images = images;
+      });
+
+      return res.status(200).json({ data: allProducts.rows });
+    } catch (error) {
+      console.log(error);
+      return res.status(500).json({ error: "Server error, try agin!" });
+    }
   }
-});
+);
 
 router.delete("/delete-product-image/:product_id", UserAuthMiddleware, async (req, res) => {
   let { product_id } = req.params;
@@ -396,7 +444,7 @@ router.get("/get-all-sub-categories/:category_id", async (req, res) => {
     return res.status(400).json({ error: "category_id is required and must be a number" });
 
   try {
-    const subCategories = await ProductQueries.selectSubCategories(category_id);
+    const subCategories = await ProductQueries.selectSubCategories([category_id]);
     if (subCategories.rowCount < 1) {
       return res.status(400).json({ error: "No category found!" });
     }
@@ -407,41 +455,126 @@ router.get("/get-all-sub-categories/:category_id", async (req, res) => {
   }
 });
 
-// router.get("/get-hot-deals-products", async (req, res) => {
-//   let { data_amount } = req.params;
-//   let { data_offset, sub_category_id } = req.query;
+router.get("/make-payment", UserAuthMiddleware, async (req, res) => {
+  const loggedInUser = req.session.user;
 
-//   data_amount = parseInt(data_amount);
-//   data_offset = parseInt(data_offset);
+  try {
+    const userData = await ProductQueries.selectLoggedInUser([loggedInUser]);
+    const buyerCart = await ProductQueries.selectBuyerCartByUserID([loggedInUser]);
 
-//   if (!data_amount || data_amount > 50)
-//     return res.status(400).json({ error: "data_amount is required, max 50" });
+    if (buyerCart.rowCount < 1)
+      return res.status(400).json({ error: "No product was found in your cart!" });
 
-//   try {
-//     let allProducts;
-//     if (sub_category_id) {
-//       allProducts = await ProductQueries.selectAllProductDataBySubCategory([
-//         sub_category_id,
-//         data_amount,
-//         data_offset || 0,
+    // Multiply each product price with the product count
+    const multipliedPriceAndCount = buyerCart?.rows?.map(
+      (eachCartProduct) => eachCartProduct.price * eachCartProduct.product_count
+    );
+
+    // Get all cart products total price
+    const totalPrice = multipliedPriceAndCount.reduce((acc, num) => acc + num, 0);
+    const transactionResult = await makePayment(
+      userData.rows[0].email,
+      userData.rows[0].first_name,
+      userData.rows[0].last_name,
+      totalPrice,
+      loggedInUser,
+      buyerCart.rows
+    );
+
+    if (transactionResult?.data?.authorization_url)
+      return res.redirect(transactionResult?.data?.authorization_url);
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ error: "Server error, try agin!" });
+  }
+});
+
+// router.post("/paystack/webhook", async (req, res) => {
+//   // Retrieve the request's body
+//   const kobo = 100;
+//   const hash = crypto
+//     .createHmac("sha512", paystackSecret)
+//     .update(JSON.stringify(req.body))
+//     .digest("hex");
+
+//   if (hash == req.headers["x-paystack-signature"]) {
+//     // Retrieve the request's body
+//     const event = req.body;
+//     console.log("event:", event);
+
+//     console.log("metadata.cart_data:", event?.data?.metadata.cart_data);
+
+//     if (event?.data?.status === "success" && event?.event === "charge.success") {
+//       const { metadata, amount, reference } = event?.data;
+//       // Add transaction details to transactions table
+//       const newTransaction = await ProductQueries.addNewTransaction([
+//         metadata.user_id,
+//         reference,
+//         amount / kobo,
 //       ]);
-//     } else {
-//       allProducts = await ProductQueries.selectAllProduct([data_amount, data_offset || 0]);
+//       let i = 0;
+//       for (const eachCartProduct of metadata?.cart_data) {
+//         // Get total cost of a product in cart (each product price * product count
+//         console.log("Runing...", i++);
+
+//         // Add all products to product_purchases table (record purchase)
+//         await ProductQueries.addNewProductPurchase([
+//           newTransaction.rows[0].id,
+//           parseInt(eachCartProduct.product_id),
+//           parseInt(eachCartProduct.product_count),
+//           parseInt(eachCartProduct.seller_id),
+//         ]);
+//       }
+
+//       // Delete user product from cart
+//       await ProductQueries.deleteUserProductFromCart([metadata.user_id]);
+//       res.status(200);
 //     }
-
-//     if (allProducts.rowCount < 1) return res.status(400).json({ error: "No product found!" });
-
-//     // Iterate over each item in the data array
-//     allProducts.rows.forEach((item) => {
-//       const images = item.images.map((imageString) => JSON.parse(imageString));
-//       item.images = images;
-//     });
-
-//     return res.status(200).json({ data: allProducts.rows });
-//   } catch (error) {
-//     console.log(error);
-//     return res.status(500).json({ error: "Server error, try agin!" });
 //   }
 // });
+
+router.get("/paystack/callback", async (req, res) => {
+  const kobo = 100;
+  const { reference } = req.query;
+  console.log("=========================================================================");
+  console.log("=========================================================================");
+  try {
+    const transactionResult = await getTransaction(reference);
+    console.log("transactionResult:", transactionResult);
+
+    if (transactionResult.data.status === "success" && transactionResult.status === true) {
+      const { metadata, amount, reference } = transactionResult?.data;
+      // Add transaction details to transactions table
+      const newTransaction = await ProductQueries.addNewTransaction([
+        metadata.user_id,
+        reference,
+        amount / kobo,
+      ]);
+      let i = 0;
+      for (const eachCartProduct of metadata?.cart_data) {
+        // Get total cost of a product in cart (each product price * product count
+        console.log("Runing...", i++);
+
+        // Add all products to product_purchases table (record purchase)
+        await ProductQueries.addNewProductPurchase([
+          newTransaction.rows[0].id,
+          parseInt(eachCartProduct.product_id),
+          parseInt(eachCartProduct.product_count),
+          parseInt(eachCartProduct.seller_id),
+        ]);
+      }
+
+      // Delete user product from cart
+      await ProductQueries.deleteUserProductFromCart([metadata.user_id]);
+    }
+    console.log("=========================================================================");
+    console.log("=========================================================================");
+
+    return res.redirect(process.env.FRONTEND_CART_REDIRECT);
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ error: "Server error, try agin!" });
+  }
+});
 
 export default router;

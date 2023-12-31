@@ -1,0 +1,16 @@
+-- -- migrate:up
+-- create table if not exists chats (
+--     id int primary key generated always as identity,
+--     user_id int not null unique references users (id) on delete cascade on update cascade,
+--     message text not null,
+--     replied_message_id int references chats (id),
+--     created_at timestamptz not null default now(),
+--     updated_at timestamptz not null default now()
+-- );
+
+-- -----------Create Trigger--------
+-- create trigger set_timestamp before
+-- update on chats for each row execute procedure trigger_set_timestamp();
+-- ---------------------------------
+-- -- migrate:down
+-- drop table if exists chats cascade;
