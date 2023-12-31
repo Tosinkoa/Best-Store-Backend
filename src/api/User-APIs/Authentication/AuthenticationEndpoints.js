@@ -7,13 +7,14 @@ import {
 } from "../../../VALIDATOR/UserValidator/AuthenticationValidator.js";
 import { AuthenticationQueries } from "./AuthenticationQueries.js";
 import { UserAuthMiddleware } from "../../../Middlewares/UserMiddlewares.js";
-import SendEmail from "../../../LIB/SendEmail.js";
+import SendEmail from "../../../LIB/brevo.js";
 import dayjs from "dayjs";
 const router = express.Router();
 
 /**
  * @todo Add middlewares to neccessary routes
  * @todo Add comment to neccessary functions
+ * @todo_piority Change user otp function by adding logic for sending mail inside register route.
  */
 
 router.post("/register", (req, res, next) => {
@@ -104,8 +105,6 @@ router.get("/create-user-otp", UserAuthMiddleware, async (req, res) => {
     const userData = await AuthenticationQueries.selectLoggedInUserRole([loggedInUser]);
     const hashedOtpVerificationCode = bcrypt.hashSync(otpVerificationCode, 10);
 
-    console.log("userSecret.rowCount:", userSecret.rowCount);
-    console.log("userSecret.rows[0]:", userSecret.rows[0]);
     if (userSecret.rowCount < 1) {
       // Save the hashed version to the database
       await AuthenticationQueries.insertUserAuthSecret([

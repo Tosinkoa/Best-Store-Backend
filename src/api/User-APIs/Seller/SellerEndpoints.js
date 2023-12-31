@@ -118,7 +118,7 @@ router.post("/setup-seller-account", UserAuthMiddleware, (req, res) => {
   });
 });
 
-router.get("/get-a-sellers/:seller_id", UserAuthMiddleware, async (req, res) => {
+router.get("/get-a-seller/:seller_id", UserAuthMiddleware, async (req, res) => {
   let { seller_id } = req.params;
   seller_id = parseInt(seller_id);
 
@@ -152,7 +152,7 @@ router.get("/get-logged-in-seller", UserAuthMiddleware, async (req, res) => {
   }
 });
 
-router.get("/get-all-sellers/:data_amount", UserAuthMiddleware, async (req, res) => {
+router.get("/get-all-seller/:data_amount", UserAuthMiddleware, async (req, res) => {
   let { data_amount } = req.params;
   let { data_offset } = req.query;
   data_amount = parseInt(data_amount);

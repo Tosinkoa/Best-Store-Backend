@@ -6,6 +6,7 @@ import BargainRoute from "../api/User-APIs/Bargain/BargainEndpoints.js";
 import SavedItemsRoute from "../api/User-APIs/SavedItems/SavedItemsEndpoints.js";
 import LocationRoute from "../api/User-APIs/Location/LocationEndpoints.js";
 import UserRoute from "../api/User-APIs/User/UserEndpoints.js";
+import SalesHistoryRoute from "../api/User-APIs/SalesHistory/SaleHistoryEndpoints.js";
 
 const UserRootRoute = (app) => {
   app.use(AuthenticationRoute);
@@ -16,5 +17,6 @@ const UserRootRoute = (app) => {
   app.use(SavedItemsRoute);
   app.use(LocationRoute);
   app.use(UserRoute);
+  app.use(SalesHistoryRoute);
 };
 export default UserRootRoute;

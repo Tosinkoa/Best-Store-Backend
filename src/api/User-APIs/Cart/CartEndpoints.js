@@ -71,7 +71,7 @@ router.post("/add-bulk-product-to-cart", UserAuthMiddleware, async (req, res) =>
    */
 
   try {
-    cart_products.map(async (eachCartProduct) => {
+    for (const eachCartProduct of cart_products) {
       const eachProductID = eachCartProduct.product_id;
       const eachProductCount = eachCartProduct.product_count;
       try {
@@ -106,7 +106,7 @@ router.post("/add-bulk-product-to-cart", UserAuthMiddleware, async (req, res) =>
       } catch (error) {
         console.log("An error caught while saving bulk cart:", error);
       }
-    });
+    }
     return res.status(200).json({ message: "Cart updated successfully!" });
   } catch (error) {
     console.log(error);

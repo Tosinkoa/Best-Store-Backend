@@ -15,7 +15,7 @@ router.put("/setup-profile", UserAuthMiddleware, async (req, res) => {
     }
 
     try {
-      const loggedInUserData = await UserQueries.selectLoggedInUser(loggedInUser);
+      const loggedInUserData = await UserQueries.selectLoggedInUser([loggedInUser]);
       const userData = loggedInUserData.rows[0];
 
       let userProfilePicture;
@@ -54,7 +54,7 @@ router.put("/setup-profile", UserAuthMiddleware, async (req, res) => {
 router.get("/get-logged-in-user", UserAuthMiddleware, async (req, res) => {
   const loggedInUser = req.session.user;
   try {
-    const loggedInUserData = await UserQueries.selectLoggedInUser(loggedInUser);
+    const loggedInUserData = await UserQueries.selectLoggedInUser([loggedInUser]);
     return res.status(200).json({ data: loggedInUserData.rows[0] });
   } catch (error) {
     console.log(error);
